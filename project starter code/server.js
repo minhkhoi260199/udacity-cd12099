@@ -7,7 +7,7 @@ import { filterImageFromURL, deleteLocalFiles } from "./util/util.js";
 const app = express();
 
 // Set the network port
-const port = process.env.PORT || 8082;
+const port = process.env.PORT || 8080;
 
 // Use the body parser middleware for post requests
 app.use(bodyParser.json());
@@ -28,7 +28,6 @@ app.use(bodyParser.json());
 
 /**************************************************************************** */
 app.get("/filteredimage", async (req, res) => {
-
   // 1. validate the image_url query
   const imageUrl = req.query.image_url;
 
@@ -39,22 +38,21 @@ app.get("/filteredimage", async (req, res) => {
   if (!validator.isURL(imageUrl)) {
     return res.status(400).send("Invalid 'image_url' parameter");
   }
-
+  console.log(imageUrl);
   // 2. call filterImageFromURL(image_url) to filter the image
-  try {
-    const filteredPath = await filterImageFromURL(imageUrl);
-    // 3. send the resulting file in the response
-    res.sendFile(filteredPath, async (err) => {
-      if (err) {
-        return res.status(500).send("Error sending filtered image");
-      }
-      // 4. deletes any files on the server on finish of the response
-      await deleteLocalFiles([filteredPath]);
+  filterImageFromURL(imageUrl)
+    .then((filteredPath) => {
+      // 3. send the resulting file in the response
+      return res.status(200).sendFile(filteredPath, (err) => {
+        if (!err) {
+          // 4. deletes any files on the server on finish of the response
+          deleteLocalFiles(filteredPath);
+        }
+      });
+    })
+    .catch(() => {
+      return res.status(500).send("Error filtering image");
     });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send("Error filtering image");
-  }
 });
 
 //! END @TODO1
